@@ -7,31 +7,63 @@ GAME_SPEED = 10
 ROWS = 17
 
 snake_color = (78, 124, 246)
+fruit_color = (255, 00, 246)
 line_color = (255, 255, 255)
+checker_board = ((162, 209, 73), (109, 209, 73))
 
 flag = True
 score = 0
 max_score = 0
 
+pygame.init()
+win = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_WIDTH))
+
+
 class Game:
-    def draw_checkerboard(self):
-        for i in range(ROWS):
-            # Vertical, Horizontal
-            x = i * 30
-            y = i * 30
+    def __init__(self, game_map):
+        self.game_map = game_map
+        self.fruit_x, self.fruit_y = self.random_square()
 
-            # vertical, horizontal
-            if i == 16:
-                pygame.draw.line(win, line_color, (x, 0), (x, WINDOW_WIDTH))
-                pygame.draw.line(win, line_color, (0, y), (WINDOW_WIDTH, y))
-                pygame.draw.line(win, line_color, (x + 29, 0), (x + 29, WINDOW_WIDTH))
-                pygame.draw.line(win, line_color, (0, y + 29), (WINDOW_WIDTH, y + 29))
-            else:
-                pygame.draw.line(win, line_color, (x, 0), (x, WINDOW_WIDTH))
-                pygame.draw.line(win, line_color, (0, y), (WINDOW_WIDTH, y))
+    def draw_map(self):
+        # Bars
+        if self.game_map == 0:
+            for i in range(ROWS):
+                # Vertical, Horizontal
+                x = i * 30
+                y = i * 30
 
-    def draw_fruit(self):
-        pass
+                # vertical, horizontal
+                if i == 16:
+                    pygame.draw.line(win, line_color, (x, 0), (x, WINDOW_WIDTH))
+                    pygame.draw.line(win, line_color, (0, y), (WINDOW_WIDTH, y))
+                    pygame.draw.line(win, line_color, (x + 29, 0), (x + 29, WINDOW_WIDTH))
+                    pygame.draw.line(win, line_color, (0, y + 29), (WINDOW_WIDTH, y + 29))
+                else:
+                    pygame.draw.line(win, line_color, (x, 0), (x, WINDOW_WIDTH))
+                    pygame.draw.line(win, line_color, (0, y), (WINDOW_WIDTH, y))
+        # Checkerboard
+        elif self.game_map == 1:
+            for i in range(ROWS):
+                for j in range(1, 18):
+                    x = i * 30
+                    y = j * 30
+                    if j % 2 == 0:  # even
+                        pygame.draw.rect(win, checker_board[1], (x, y * 30, 30, 30))
+
+    def random_square(self):
+        row = randint(0, ROWS - 1)
+        x = row * 30
+        y = row * 30
+        return x, y
+
+    def manage_fruit(self):
+        # Draw the fruit
+        if (self.fruit_x, self.fruit_y) not in snake.snake_body:
+            pygame.draw.rect(win, fruit_color, (self.fruit_x + 10, self.fruit_y + 10, 19, 19))
+
+        if (self.fruit_x, self.fruit_y) in snake.snake_body:
+            snake.add_body()
+            self.fruit_x, self.fruit_y = self.random_square()
 
     def check_collisions(self):
         # in itself
@@ -70,7 +102,6 @@ class Game:
 class Snake:
     def __init__(self):
         self.snake_body = [(210, 240), (180, 240), (150, 240)]
-        self.food_position = self.set_new_food_position()
         self.direction = "Right"
 
     def move(self):
@@ -91,36 +122,42 @@ class Snake:
         for x, y in self.snake_body:
             pygame.draw.rect(win, snake_color, (x + 1, y + 1, 29, 29))
 
-    def set_new_food_position(self):
-        while True:
-            x_position = randint(1, 29) * MOVE_INCREMENT
-            y_position = randint(3, 30) * MOVE_INCREMENT
-            food_position = (x_position, y_position)
+    def add_body(self):
+        snake_pos_x, snake_pos_y = self.snake_body[0]
+        new_head_pos = (snake_pos_x, snake_pos_y)
 
-            if food_position not in self.snake_body:
-                return food_position
+        if self.direction == "Right":
+            new_head_pos = (snake_pos_x + MOVE_INCREMENT, snake_pos_y)
+        if self.direction == "Left":
+            new_head_pos = (snake_pos_x - MOVE_INCREMENT, snake_pos_y)
+        if self.direction == "Up":
+            new_head_pos = (snake_pos_x, snake_pos_y - MOVE_INCREMENT)
+        if self.direction == "Down":
+            new_head_pos = (snake_pos_x, snake_pos_y + MOVE_INCREMENT)
+
+        self.snake_body += [new_head_pos]
 
 
-def refresh_window():
-    win.fill((162, 209, 73))
-    game.draw_checkerboard()
+def draw_game():
+    win.fill(checker_board[0])
+    game.draw_map()
+    game.manage_fruit()
     snake.move()
     pygame.display.update()
     pass
 
 
-global win
-pygame.init()
-win = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_WIDTH))
+# Window setup
 pygame.display.set_caption("Snake by NMan")
 
+# Setup game elements
 snake = Snake()
-game = Game()
+game = Game(1)
 clock = pygame.time.Clock()
 
 while flag:
     # slow loop & limit fps / speed of game
-    # pygame.time.delay(50)
+    pygame.time.delay(50)
     clock.tick(10)
 
     # key input & moving snake
@@ -128,5 +165,5 @@ while flag:
     if not game.check_collisions():
         score = 0
 
-    # redraw snake, food, and window itself
-    refresh_window()
+    # draw snake, food, and window itself
+    draw_game()
