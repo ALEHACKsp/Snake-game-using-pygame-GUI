@@ -7,9 +7,10 @@ GAME_SPEED = 10
 ROWS = 17
 
 snake_color = (78, 124, 246)
-fruit_color = (255, 00, 246)
+fruit_color = (231, 71, 29)
 line_color = (255, 255, 255)
-checker_board = ((162, 209, 73), (109, 209, 73))
+boarder_color = (64, 139, 4)
+checker_board = ((134, 209, 73), (168, 215, 81))
 
 flag = True
 score = 0
@@ -17,6 +18,18 @@ max_score = 0
 
 pygame.init()
 win = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_WIDTH))
+
+
+def text_objects(text, font):
+    text_surface = font.render(text, True, (0, 0, 0))
+    return text_surface, text_surface.get_rect()
+
+
+def message_display(text, x, y):
+    large_text = pygame.font.Font('freesansbold.ttf', 30)
+    text_surf, text_rect = text_objects(text, large_text)
+    text_rect.center = (x, y)
+    win.blit(text_surf, text_rect)
 
 
 class Game:
@@ -43,15 +56,28 @@ class Game:
                     pygame.draw.line(win, line_color, (0, y), (WINDOW_WIDTH, y))
         # Checkerboard
         elif self.game_map == 1:
-            for i in range(ROWS):
+            switch = True
+            x = 0
+            for i in range(ROWS+1):
+                y = 0
                 for j in range(1, 18):
-                    x = i * 30
-                    y = j * 30
-                    if j % 2 == 0:  # even
-                        pygame.draw.rect(win, checker_board[1], (x, y * 30, 30, 30))
+                    if i != 0:
+                        if (switch and j % 2 == 0) or (not switch and j % 2 != 0):  # even
+                            pygame.draw.rect(win, checker_board[1], (x, y, 30, 30))
+                    y = y + 30
+                switch = not switch
+                x = i * 30
+
+    def draw_boarder_and_score(self):
+        pygame.draw.rect(win, boarder_color, (0, 0, 510, 30)) # ---- top
+        pygame.draw.rect(win, boarder_color, (0, 0, 30, 510)) # |--- left
+        pygame.draw.rect(win, boarder_color, (0, 480, 510, 30)) # ---- bottom
+        pygame.draw.rect(win, boarder_color, (480, 0, 30, 510)) # ---| right
+        msg = "Score: " + str(score)
+        message_display(msg, 87, 17)
 
     def random_square(self):
-        row = randint(0, ROWS - 1)
+        row = randint(1, ROWS - 2)
         x = row * 30
         y = row * 30
         return x, y
@@ -59,10 +85,12 @@ class Game:
     def manage_fruit(self):
         # Draw the fruit
         if (self.fruit_x, self.fruit_y) not in snake.snake_body:
-            pygame.draw.rect(win, fruit_color, (self.fruit_x + 10, self.fruit_y + 10, 19, 19))
+            pygame.draw.circle(win, fruit_color, (self.fruit_x + 15, self.fruit_y + 15), 10)
 
         if (self.fruit_x, self.fruit_y) in snake.snake_body:
+            global score
             snake.add_body()
+            score = score + 1
             self.fruit_x, self.fruit_y = self.random_square()
 
     def check_collisions(self):
@@ -75,7 +103,7 @@ class Game:
 
         # Boundaries
         for x, y in snake.snake_body:
-            if x < 0 or x >= 510 or y < 0 or y >= 510:
+            if x < 30 or x >= 480 or y < 30 or y >= 480:
                 snake.snake_body = [(210, 240), (180, 240), (150, 240)]
                 snake.direction = "Right"
                 return False
@@ -143,6 +171,7 @@ def draw_game():
     game.draw_map()
     game.manage_fruit()
     snake.move()
+    game.draw_boarder_and_score()
     pygame.display.update()
     pass
 
